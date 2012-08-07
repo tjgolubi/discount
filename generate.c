@@ -743,29 +743,34 @@ linkyformat(MMIOT *f, Cstring text, int image, Footnote *ref)
 } /* linkyformat */
 
 static Cstring linky_local_url(const Cstring* str) {
-  Cstring result;
-  CREATE(result);
-  if (!str || !T(*str) || !S(*str))
+    Cstring result;
+    const char *src;
+    const char *end;
+    char *dst;
+    CREATE(result);
+    if (!str || !T(*str) || !S(*str))
+        return result;
+    RESERVE(result, S(*str) + 3);
+    if (!ALLOCATED(result))
+        return result;
+    src = T(*str);
+    end = src + S(*str);
+    while (end > src && isspace(end[-1]))
+        --end;
+    dst = T(result);
+    *dst = '#';
+    if (!isalpha(*src))
+        *++dst = 'L';
+    while (src != end) {
+        char c = *src++;
+        if (!c)
+            break;
+        int legal = (isalnum(c) || c == '_' || c == ':' || c == '-');
+        *++dst = legal ? c : '.';
+    }
+    *++dst = '\0';
+    S(result) = dst - T(result);
     return result;
-  RESERVE(result, S(*str) + 3);
-  if (!ALLOCATED(result))
-    return result;
-  const char* src = T(*str);
-  const char* const end = src + S(*str);
-  char* dst = T(result);
-  *dst = '#';
-  if (!isalpha(*src))
-    *++dst = 'L';
-  while (src != end) {
-    char c = *src++;
-    if (!c)
-      break;
-    int legal = (isalnum(c) || c == '_' || c == ':' || c == '-');
-    *++dst = legal ? c : '.';
-  }
-  *++dst = '\0';
-  S(result) = dst - T(result);
-  return result;
 }
 
 /*
