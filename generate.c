@@ -746,7 +746,8 @@ linkylinky(int image, MMIOT *f)
 	    }
 	    
 	    if ( goodlink ) {
-		if ( !S(key.tag) ) {
+                int implicit_link = !S(key.tag);
+		if ( implicit_link ) {
 		    DELETE(key.tag);
 		    T(key.tag) = T(name);
 		    S(key.tag) = S(name);
@@ -759,7 +760,7 @@ linkylinky(int image, MMIOT *f)
 		    else
 			status = linkyformat(f, name, image, ref);
 		}
-                else if (!(f->flags & MKD_NOHDRLINKS)) {
+                else if (implicit_link && !(f->flags & MKD_NOHDRLINKS)) {
                     // If implicit link is not found assume it's a local header.
                     Cstring url;
                     url = linky_local_url(&name);
