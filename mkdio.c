@@ -221,19 +221,23 @@ mkd_string_to_anchor(char *s, int len, mkd_sta_function_t outchar,
     char *line;
 
     size = mkd_line(s, len, &line, IS_LABEL);
-    
-    if ( labelformat && (size>0) && !isalpha(line[0]) )
-	(*outchar)('L',out);
-    for ( i=0; i < size ; i++ ) {
-	c = line[i];
-	if ( labelformat ) {
-	    if ( isalnum(c) || (c == '_') || (c == ':') || (c == '-') || (c == '.' ) )
-		(*outchar)(c, out);
-	    else
-		(*outchar)('.', out);
-	}
-	else
-	    (*outchar)(c,out);
+
+    if (!labelformat) {
+        for ( i = 0; i < size ; i++ )
+            (*outchar)(line[i], out);
+    }
+    else if (size > 0) {
+        if ( !isalpha(line[0]) )
+            (*outchar)('L',out);
+        while (isspace(line[size-1]))
+            --size;
+        for ( i=0; i < size ; i++ ) {
+            c = line[i];
+            if ( isalnum(c) || (c == '_') || (c == ':') || (c == '-') || (c == '.' ) )
+                (*outchar)(c, out);
+            else
+                (*outchar)('.', out);
+        }
     }
 	
     if (line)
