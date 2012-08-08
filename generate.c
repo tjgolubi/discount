@@ -731,11 +731,13 @@ linkylinky(int image, MMIOT *f)
 	}
 	else {
 	    int goodlink, implicit_mark = mmiottell(f);
+            int two_part_label;
 
 	    if ( isspace(peek(f,1)) )
 		pull(f);
 	    
-	    if ( peek(f,1) == '[' ) {
+            two_part_label = (peek(f,1) == '[');
+            if (two_part_label) {
 		pull(f);	/* consume leading '[' */
 		goodlink = linkylabel(f, &key.tag);
 	    }
@@ -765,7 +767,9 @@ linkylinky(int image, MMIOT *f)
 		    else
 			status = linkyformat(f, name, image, ref);
 		}
-                else if (implicit_link && !(f->flags & MKD_NOHDRLINKS)) {
+                else if (implicit_link && two_part_label
+                         && !(f->flags & MKD_NOHDRLINKS))
+                {
                     // If implicit link is not found assume it's a local header.
                     Cstring url;
                     url = linky_local_url(&name);
