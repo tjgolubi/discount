@@ -24,6 +24,10 @@ typedef struct footnote {
  * that all tabs will be expanded to spaces!], and a pointer to
  * the next line.
  */
+typedef enum { chk_text, chk_code,
+	       chk_hr, chk_dash,
+	       chk_tilde, chk_backtick,
+	       chk_equal } line_type;
 typedef struct line {
     Cstring text;
     struct line *next;
@@ -32,9 +36,7 @@ typedef struct line {
 #define PIPECHAR	0x01		/* line contains a | */
 #define CHECKED		0x02
 
-    enum { chk_text, chk_code,
-	   chk_hr, chk_dash,
-	   chk_tilde, chk_equal } kind;
+    line_type kind;
     int count;
 } Line;
 
