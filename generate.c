@@ -26,6 +26,8 @@ static Paragraph *display(Paragraph*, MMIOT*);
 
 /* externals from markdown.c */
 int __mkd_footsort(Footnote *, Footnote *);
+int ___mkd_tablecaption(Line*);
+
 
 /*
  * push text into the generator input buffer
@@ -1471,72 +1473,38 @@ splat(Line *p, char *block, Istring align, int force, MMIOT *f)
 }
 
 
-static void
-printcaption(Line* caption, MMIOT *f) {
-    char* caption_text;
-    int caption_size;
-    if (!caption)
-        return;
-    caption_text = T(caption->text) + caption->dle + 1;
-    caption_size = S(caption->text) - caption->dle - 1;;
-    while (caption_size > 0 && caption_text[--caption_size] != ']')
-        ;
-    if (caption_size <= 0)
-        return;
-#if WITH_ID_ANCHOR
-    Qstring("<caption id=\"", f);
-    mkd_string_to_anchor(caption_text, caption_size,
-                         (mkd_sta_function_t)Qchar, f, 1);
-    Qstring("\">\n", f);
-#else
-    Qstring("<a name=\"", f);
-    mkd_string_to_anchor(caption_text, caption_size,
-                         (mkd_sta_function_t)Qchar, f, 1);
-    Qstring("\"></a>\n<caption>\n", f);
-#endif
-    push(caption_text, caption_size, f);
-    text(f);
-    Qstring("\n</caption>\n", f);
-}
-
-
 static int
 printtable(Paragraph *pp, MMIOT *f)
 {
     /* header, dashes, then lines of content */
 
     Line *hdr, *dash, *body;
-    Line *caption = 0;
-    Line *last;
+    Line *first, *caption = 0, *lastline;
+    Line *r;
     Istring align;
     int hcols,start;
     char *p;
     enum e_alignments it;
 
-    hdr = pp->text;
-
-    /* first and last line could be a caption */
-    if ( !(hdr->flags & PIPECHAR) ) {
-      caption = hdr;
-      hdr = hdr->next;
+    first = pp->text;
+    if ( ___mkd_tablecaption(first) ) {
+	caption = first;
+	first = first->next;
     }
+    for ( r = pp->text; (lastline = r); r = r->next )
+	if ( r->next == 0 && ___mkd_tablecaption(r) ) {
+	    if ( !caption ) caption = r;
+	    break;
+	}
 
-    for (last = hdr; last; last = last->next) {
-      if ( !(last->flags & PIPECHAR) ) {
-        if (!caption)
-          caption = last;
-        break;
-      }
-    }
-
+    hdr = first;
     dash= hdr->next;
     body= dash->next;
 
     if ( T(hdr->text)[hdr->dle] == '|' ) {
 	/* trim leading pipe off all lines
 	 */
-	Line *r;
-	for ( r = hdr; r != last; r = r->next )
+	for ( r = hdr; r != lastline; r = r->next )
 	    r->dle ++;
     }
 
@@ -1565,7 +1533,11 @@ printtable(Paragraph *pp, MMIOT *f)
     }
 
     Qstring("<table>\n", f);
-    printcaption(caption, f);
+    if ( caption ) {
+	Qstring("<caption>", f);
+	___mkd_reparse(T(caption->text)+1, S(caption->text)-2, 0, f, 0);
+	Qstring("</caption>\n", f);
+    }
     Qstring("<thead>\n", f);
     hcols = splat(hdr, "th", align, 0, f);
     Qstring("</thead>\n", f);
@@ -1577,9 +1549,11 @@ printtable(Paragraph *pp, MMIOT *f)
 	    EXPAND(align) = a_NONE;
 
     Qstring("<tbody>\n", f);
-    for ( ; body != last; body = body->next)
+    for ( ; body != lastline; body = body->next )
 	splat(body, "td", align, 1, f);
+    
     Qstring("</tbody>\n", f);
+
     Qstring("</table>\n", f);
 
     DELETE(align);
